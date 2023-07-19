@@ -1,0 +1,41 @@
+---
+- name: Get running configuration
+  hosts: all
+  connection: network_cli
+  gather_facts: no
+  tasks:
+  - name: Gather Dell OS 9 Facts
+    sense.dellos9.dellos9_facts:
+      gather_subset: all
+    register: facts
+    when: ansible_network_os is defined and ansible_network_os == "sense.dellos9.dellos9"
+
+  - name: Gather Dell OS 10 Facts
+    sense.dellos10.dellos10_facts:
+      gather_subset: all
+    register: facts
+    when: ansible_network_os is defined and ansible_network_os == "sense.dellos10.dellos10"
+
+  - name: Gather Arista EOS Facts
+    sense.aristaeos.aristaeos_facts:
+      gather_subset: all
+    register: facts
+    when: ansible_network_os is defined and ansible_network_os == "sense.aristaeos.aristaeos"
+
+  - name: Gather Azure SONiC Facts
+    command: show runningconfiguration all
+    become: true
+    register: facts
+    when: ansible_network_os is defined and ansible_network_os == "sonic"
+
+  - name: Gather RARE FreeRTR Facts
+    sense.freertr.freertr_facts:
+      gather_subset: all
+    register: facts
+    when: ansible_network_os is defined and ansible_network_os == "sense.freertr.freertr"
+
+  - name: Gather all Cisco NX facts
+    cisco.nxos.nxos_facts:
+      gather_subset: all
+    register: facts
+    when: ansible_network_os is defined and ansible_network_os == "cisco.nxos.nxos"
