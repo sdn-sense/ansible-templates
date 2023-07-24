@@ -22,11 +22,11 @@
     register: facts
     when: ansible_network_os is defined and ansible_network_os == "sense.aristaeos.aristaeos"
 
-  - name: Gather Azure SONiC Facts
-    command: show runningconfiguration all
-    become: true
+  - name: Gather  Azure SONiC Facts
+    sense.sonic.sonic_facts:
+      gather_subset: all
     register: facts
-    when: ansible_network_os is defined and ansible_network_os == "sonic"
+    when: ansible_network_os is defined and ansible_network_os == "sense.sonic.sonic"
 
   - name: Gather RARE FreeRTR Facts
     sense.freertr.freertr_facts:

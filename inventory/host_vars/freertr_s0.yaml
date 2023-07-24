@@ -1,8 +1,9 @@
+template_name: freertr.j2
 ansible_become: false
 ansible_connection: ansible.netcommon.network_cli
 ansible_network_os: sense.freertr.freertr
-ansible_pass: MySuperDuperPassword
-ansible_user: MySuperDuperUsername
+ansible_ssh_pass: MySuperDuperPassword
+ansible_ssh_user: MySuperDuperUsername
 hostname: freertr_s0
 # For snmp monitoring parameters, see Session API parameters: https://easysnmp.readthedocs.io/en/latest/session_api.html
 snmp_monitoring:
