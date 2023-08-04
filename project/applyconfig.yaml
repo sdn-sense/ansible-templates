@@ -31,7 +31,6 @@
     - name: Push Arista EOS Config
       sense.aristaeos.aristaeos_config:
         src: /var/tmp/{{ inventory_hostname }}.conf
-        running_config: "! Command: show running-config"
       when: ansible_network_os == "sense.aristaeos.aristaeos"
 
     - name: Push Cisco NX Config
