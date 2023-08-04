@@ -1,4 +1,4 @@
-template_name: dellos9.j2
+template_name: dellos10.j2
 ansible_become: false
 ansible_network_os: sense.dellos10.dellos10
 ansible_ssh_pass: MySuperDuperPassword
