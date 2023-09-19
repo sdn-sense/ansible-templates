@@ -3,7 +3,7 @@
 # dellos10 - Managing Dell OS 10
 # aristaeos - Managing Arista EOS Devices
 # sonic - Managing Azure Sonic
-# Cisco NX - Managinx Cisco NX OS
+# Cisco NX 9 - Managinx Cisco NX OS 9 Devices
 # freertr - Managing RARE FreeRTR. Only for visualization at give moment
 # More detailed configuration parameters: https://docs.ansible.com/ansible/latest/user_guide/intro_inventory.html
 sense:
@@ -18,7 +18,5 @@ sense:
       ansible_host: 192.168.100.4
     sn3700_s0:
       ansible_host: 192.168.100.5
-cisconx:
-  hosts:
     cisconx_s0:
       ansible_host: 192.168.100.6

@@ -50,7 +50,7 @@ def saveOutput(inJson, filename, outputdir):
 
 
 outputdir="/opt/siterm/config/ansible/sense"
-playbooks = ['getfacts.yaml', 'maclldproute.yaml', 'applyconfig.yaml']
+playbooks = ['getfacts.yaml', 'applyconfig.yaml']
 for playbook in playbooks:
     print("RUNNING PLAYBOOK: %s" % playbook)
     r = runAnsible(playbook)

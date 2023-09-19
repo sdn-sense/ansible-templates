@@ -34,10 +34,13 @@
       when: ansible_network_os == "sense.aristaeos.aristaeos"
 
     - name: Push Cisco NX Config
-      cisco.nxos.nxos_config:
+      sense.cisconx9.cisconx9_config:
         src: /var/tmp/{{ inventory_hostname }}.conf
-        running_config: "! Command: show running-config"
-      when: ansible_network_os == "cisco.nxos.nxos"
+        save: yes
+        provider:
+          host: "{{ ansible_host }}"
+          timeout: 300
+      when: ansible_network_os == "sense.cisconx9.cisconx9"
 
     - name: Build Config Templates for Vlan Creation/Removal for SONiC
       template:
