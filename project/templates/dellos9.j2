@@ -104,97 +104,66 @@ interface Vlan {{ vlan_vars.vlanid }}
 {% endfor %}
 {% endif %}
 
+{# Apply all IPv4 Router config #}
+{# Dell OS 9 Enabled IPv4/6 at same time. To activate IPv6 peer - you need to do this first inside ipv4 address-family #}
 {% if sense_bgp is defined and sense_bgp %}
 {% set bgp = sense_bgp %}
   {% if bgp.asn is defined and bgp.asn %}
     {% if bgp.state is defined and bgp.state == "present" %}
 router bgp {{ bgp.asn }}
       {% set addr_fam_v4 = "address-family ipv4 multicast" %}
-      {% set addr_fam_v6 = "address-family ipv6 unicast" %}
       {% if bgp.vrf is defined %}
         {% set addr_fam_v4 = "address-family ipv4 vrf " ~ bgp.vrf %}
-        {% set addr_fam_v6 = "address-family ipv6 unicast vrf " ~ bgp.vrf %}
       {% endif %}
-      {% if bgp.ipv4_network is defined and bgp.ipv4_network %}
-        {% for key, val in bgp.ipv4_network.items() %}
-          {% if val == "absent" %}
  {{ addr_fam_v4 }}
-  no network {{ key }}
-          {% else %}
- {{ addr_fam_v4 }}
-  network {{ key }}
-          {% endif %}
-        {% endfor %}
-      {% endif %}
-      {% if bgp.ipv6_network is defined and bgp.ipv6_network %}
-        {% for key, val in bgp.ipv6_network.items() %}
-          {% if val == "absent" %}
- {{ addr_fam_v6 }}
-  no network {{ key }}
-          {% else %}
- {# HACK-2 #}
- {{ addr_fam_v4 }}
- {# HACK-2 #}
- {{ addr_fam_v6 }}
-  network {{ key }}
-          {% endif %}
-        {% endfor %}
-      {% endif %}
       {% if bgp.neighbor is defined and bgp.neighbor %}
-        {% if bgp.neighbor.ipv4 is defined and bgp.neighbor.ipv4 %}
-          {% for key, val in bgp.neighbor.ipv4.items() %}
-            {% set neighIP = key.split("/")[0] %}
-            {% if val.remote_asn is defined and val.remote_asn %}
-              {% if val.state is defined and val.state == "absent" %}
- {{ addr_fam_v4 }}
-  no neighbor {{ neighIP }} remote-as {{ val.remote_asn }}
-              {% else %}
- {{ addr_fam_v4 }}
-  neighbor {{ neighIP }} remote-as {{ val.remote_asn }}
-  neighbor {{ neighIP }} no shutdown
-                {% if val.route_map is defined and val.route_map %}
- {{ addr_fam_v4 }}
-  neighbor {{ neighIP }} activate
- {{ addr_fam_v4 }}
-                  {% for direc, vals in val.route_map.items() %}
-                    {% for name, state in vals.items() %}
-                      {% if state == "absent" %}
-  no neighbor {{ neighIP }} route-map {{ name }} {{ direc }}
-                      {% else %}
-  neighbor {{ neighIP }} route-map {{ name }} {{ direc }}
-                      {% endif %}
-                    {% endfor %}
-                  {% endfor %}
-                {% endif %}
-              {% endif %}
-            {% endif %}
-          {% endfor %}
-        {% endif %}
         {% if bgp.neighbor.ipv6 is defined and bgp.neighbor.ipv6 %}
           {% for key, val in bgp.neighbor.ipv6.items() %}
             {% set neighIP = key.split("/")[0] %}
             {% if val.remote_asn is defined and val.remote_asn %}
               {% if val.state is defined and val.state == "absent" %}
-{# HACK-1 #}
- {{ addr_fam_v4 }}
   no neighbor {{ neighIP }} remote-as {{ val.remote_asn }}
-{# HACK-1 #}
               {% else %}
-{# HACK-1 #}
- {{ addr_fam_v4 }}
   neighbor {{ neighIP }} remote-as {{ val.remote_asn }}
   neighbor {{ neighIP }} no shutdown
   no neighbor {{ neighIP }} activate
-{# HACK-1 #}
-                {% if val.route_map is defined and val.route_map %}
+              {% endif %}
+            {% endif %}
+          {% endfor %}
+        {% endif %}
+      {% endif %}
+    {% endif %}
+  {% endif %}
+
+{# Apply all IPv6 Router config #}
+  {% if bgp.asn is defined and bgp.asn %}
+    {% if bgp.state is defined and bgp.state == "present" %}
+router bgp {{ bgp.asn }}
+      {% set addr_fam_v6 = "address-family ipv6 unicast" %}
+      {% if bgp.vrf is defined %}
+        {% set addr_fam_v6 = "address-family ipv6 unicast vrf " ~ bgp.vrf %}
+      {% endif %}
+      {% if bgp.ipv6_network is defined and bgp.ipv6_network %}
  {{ addr_fam_v6 }}
+        {% for key, val in bgp.ipv6_network.items() %}
+          {% if val == "absent" %}
+  no network {{ key }}
+          {% else %}
+  network {{ key }}
+          {% endif %}
+        {% endfor %}
+      {% endif %}
+      {% if bgp.neighbor is defined and bgp.neighbor %}
+        {% if bgp.neighbor.ipv6 is defined and bgp.neighbor.ipv6 %}
+          {% for key, val in bgp.neighbor.ipv6.items() %}
+            {% set neighIP = key.split("/")[0] %}
+            {% if val.remote_asn is defined and val.remote_asn %}
+              {% if val.state is defined and val.state != "absent" %}
   neighbor {{ neighIP }} activate
- {{ addr_fam_v6 }}
+                {% if val.route_map is defined and val.route_map %}
                   {% for direc, vals in val.route_map.items() %}
                     {% for name, state in vals.items() %}
-                      {% if state == "absent" %}
-  no neighbor {{ neighIP }} route-map {{ name }} {{ direc }}
-                      {% else %}
+                      {% if state != "absent" %}
   neighbor {{ neighIP }} route-map {{ name }} {{ direc }}
                       {% endif %}
                     {% endfor %}
@@ -207,6 +176,7 @@ router bgp {{ bgp.asn }}
       {% endif %}
     {% endif %}
   {% endif %}
+
   {% if bgp.prefix_list is defined and bgp.prefix_list %}
     {% for iptype, vals in bgp.prefix_list.items() %}
       {% set ipname = 'ip' %}
