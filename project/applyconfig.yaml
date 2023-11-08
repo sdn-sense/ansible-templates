@@ -31,7 +31,7 @@
     - name: Push Arista EOS Config
       sense.aristaeos.aristaeos_config:
         src: /var/tmp/{{ inventory_hostname }}.conf
-      when: ansible_network_os == "sense.aristaeos.aristaeos"
+      when: ansible_network_os is defined and ansible_network_os == "sense.aristaeos.aristaeos"
 
     - name: Push Cisco NX Config
       sense.cisconx9.cisconx9_config:
@@ -40,7 +40,7 @@
         provider:
           host: "{{ ansible_host }}"
           timeout: 300
-      when: ansible_network_os == "sense.cisconx9.cisconx9"
+      when: ansible_network_os is defined and ansible_network_os == "sense.cisconx9.cisconx9"
 
     - name: Build Config Templates for Vlan Creation/Removal for SONiC
       template:

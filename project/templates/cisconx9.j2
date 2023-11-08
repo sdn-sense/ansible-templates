@@ -96,3 +96,95 @@ interface {{ key }}
   {% endif %}
 {% endfor %}
 {% endif %}
+
+{% if sense_bgp is defined and sense_bgp %}
+{% set bgp = sense_bgp %}
+{# Apply all IPv6 Router config #}
+  {% if bgp.asn is defined and bgp.asn %}
+    {% if bgp.state is defined and bgp.state == "present" %}
+router bgp {{ bgp.asn }}
+      {% set addr_fam_v6 = "address-family ipv6 unicast" %}
+{# In Future apply using VRF if VRF is needed #}
+      {% if bgp.ipv6_network is defined and bgp.ipv6_network %}
+ {{ addr_fam_v6 }}
+        {% for key, val in bgp.ipv6_network.items() %}
+          {% if val == "absent" %}
+  no network {{ key }}
+          {% else %}
+  network {{ key }}
+          {% endif %}
+        {% endfor %}
+      {% endif %}
+      {% if bgp.neighbor is defined and bgp.neighbor %}
+        {% if bgp.neighbor.ipv6 is defined and bgp.neighbor.ipv6 %}
+          {% for key, val in bgp.neighbor.ipv6.items() %}
+            {% set neighIP = key.split("/")[0] %}
+            {% if val.remote_asn is defined and val.remote_asn %}
+              {% if val.state is defined and val.state != "absent" %}
+  neighbor {{ neighIP }} remote-as {{ val.remote_asn }}
+                {% if val.route_map is defined and val.route_map %}
+    {{ addr_fam_v6 }}
+                  {% for direc, vals in val.route_map.items() %}
+                    {% for name, state in vals.items() %}
+                      {% if state != "absent" %}
+      route-map {{ name }} {{ direc }}
+                      {% endif %}
+                    {% endfor %}
+                  {% endfor %}
+                {% endif %}
+              {% endif %}
+            {% endif %}
+          {% endfor %}
+        {% endif %}
+      {% endif %}
+    {% endif %}
+  {% endif %}
+
+  {% if bgp.prefix_list is defined and bgp.prefix_list %}
+    {% for iptype, vals in bgp.prefix_list.items() %}
+      {% set ipname = 'ip' %}
+      {% if iptype == "ipv6" %}
+        {% set ipname = 'ipv6' %}
+      {% endif %}
+      {% if vals %}
+        {% for prefip, prefdict in vals.items() %}
+          {% if prefdict %}
+            {% for prefname, prefstate in prefdict.items() %}
+              {% if prefstate == "absent" %}
+no {{ ipname }} prefix-list {{ prefname }}
+              {% endif %}
+              {% if prefstate == "present" %}
+{{ ipname }} prefix-list {{ prefname }} permit {{ prefip }}
+              {% endif %}
+            {% endfor %}
+          {% endif %}
+        {% endfor %}
+      {% endif %}
+    {% endfor %}
+  {% endif %}
+  {% if bgp.route_map is defined and bgp.route_map %}
+    {% for iptype, vals in bgp.route_map.items() %}
+      {% set ipname = 'ip' %}
+      {% if iptype == "ipv6" %}
+        {% set ipname = 'ipv6' %}
+      {% endif %}
+      {% if vals %}
+        {% for rmapname, rmapdict in vals.items() %}
+          {% if rmapdict %}
+            {% for permitval , routes in rmapdict.items() %}
+              {% for routename, routestate in routes.items() %}
+                {% if routestate == "absent" %}
+no route-map {{ rmapname }} permit {{ permitval }}
+                {% endif %}
+                {% if routestate == "present" %}
+route-map {{ rmapname }} permit {{ permitval }}
+ match {{ ipname }} address prefix-list {{ routename }}
+                {% endif %}
+              {% endfor %}
+            {% endfor %}
+          {% endif %}
+        {% endfor %}
+      {% endif %}
+    {% endfor %}
+  {% endif %}
+{% endif %}
