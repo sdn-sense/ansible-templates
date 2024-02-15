@@ -160,6 +160,7 @@ router bgp {{ bgp.asn }}
             {% if val.remote_asn is defined and val.remote_asn %}
               {% if val.state is defined and val.state != "absent" %}
   neighbor {{ neighIP }} activate
+  neighbor {{ neighIP }} soft-reconfiguration inbound
                 {% if val.route_map is defined and val.route_map %}
                   {% for direc, vals in val.route_map.items() %}
                     {% for name, state in vals.items() %}
