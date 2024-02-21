@@ -238,7 +238,7 @@ interface {{ qos_vars.port }}
   no rate police {{ qos_vars.rate }} vlan {{ qos_vars.vlan }}
     {% else %}
 interface {{ qos_vars.port }}
-  rate police {{ qos_vars.rate }} 1000 vlan {{ qos_vars.vlan }}
+  rate police {{ qos_vars.rate }} 10000 vlan {{ qos_vars.vlan }}
     {% endif %}
   {% endfor %}
 {% endif %}
