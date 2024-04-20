@@ -177,6 +177,7 @@ router bgp {{ bgp.asn }}
   neighbor {{ neighIP }} remote-as {{ val.remote_asn }}
   neighbor {{ neighIP }} no shutdown
   no neighbor {{ neighIP }} activate
+  neighbor {{ neighIP }} soft-reconfiguration inbound
 {# HACK-1 #}
                 {% if val.route_map is defined and val.route_map %}
  {{ addr_fam_v6 }}
