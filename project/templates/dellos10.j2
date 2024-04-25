@@ -50,7 +50,7 @@ interface vlan {{ vlan_vars.vlanid }}
  mtu {{ vlan_vars.mtu }}
     {% endif %}
     {% if vlan_vars.vrf is defined %}
- vrf member {{ vlan_vars.vrf }}
+ ip vrf forwarding {{ vlan_vars.vrf }}
     {% endif %}
     {% if vlan_vars.description is defined and vlan_vars.description %}
  description {{ vlan_vars.description }}
