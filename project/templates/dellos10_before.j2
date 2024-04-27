@@ -1,0 +1,62 @@
+#jinja2: lstrip_blocks: "True", trim_blocks: "True"
+{##########################################
+#Purpose:
+#Configure IPv6 Prefix List on Dell OS 10.
+#Dell OS 10 fails for that command (if repeated, so we run it with
+# ignore_errors: true and then run the command again.
+# Tested with Dell OS 10.5.4.4
+ansible_become: false
+ansible_network_os: sense.dellos10.dellos10
+ansible_ssh_pass: SuperDuperPassword
+ansible_ssh_user: SuperDuperUsername
+hostname: dellos10_s0
+sense_bgp:
+  asn: '64513'
+  ipv6_network: {'2605:d9c0:2:fff1::/64': present}
+  neighbor:
+    ipv6:
+      fc00:0:0:0:0:0:0:17/124:
+        remote_asn: '65000'
+        route_map:
+          in: {sense-f20aa5a51d2ab2fc9e5182621d00abd3-mapin: present}
+          out: {sense-f20aa5a51d2ab2fc9e5182621d00abd3-mapout: present}
+        state: present
+  prefix_list:
+    ipv4: {}
+    ipv6:
+      2001:48d0:3001:110::/64: {sense-f20aa5a51d2ab2fc9e5182621d00abd3-from: present}
+      2605:d9c0:2:fff1::/64: {sense-f20aa5a51d2ab2fc9e5182621d00abd3-to: present}
+  route_map:
+    ipv6:
+      sense-f20aa5a51d2ab2fc9e5182621d00abd3-mapin: {sense-f20aa5a51d2ab2fc9e5182621d00abd3-from: present}
+      sense-f20aa5a51d2ab2fc9e5182621d00abd3-mapout: {sense-f20aa5a51d2ab2fc9e5182621d00abd3-to: present}
+  state: present
+  vrf: lhcone
+#########################################}
+{# Dell OS 10 Enable Prefix-Lists first #}
+{% if sense_bgp is defined and sense_bgp %}
+{% set bgp = sense_bgp %}
+{# Create/Remove Route-map, Prefix Lists #}
+  {% if bgp.prefix_list is defined and bgp.prefix_list %}
+    {% for iptype, vals in bgp.prefix_list.items() %}
+      {% set ipname = 'ip' %}
+      {% if iptype == "ipv6" %}
+        {% set ipname = 'ipv6' %}
+      {% endif %}
+      {% if vals %}
+        {% for prefip, prefdict in vals.items() %}
+          {% if prefdict %}
+            {% for prefname, prefstate in prefdict.items() %}
+              {% if prefstate == "absent" %}
+no {{ ipname }} prefix-list {{ prefname }}
+              {% endif %}
+              {% if prefstate == "present" %}
+{{ ipname }} prefix-list {{ prefname }} permit {{ prefip }}
+              {% endif %}
+            {% endfor %}
+          {% endif %}
+        {% endfor %}
+      {% endif %}
+    {% endfor %}
+  {% endif %}
+{% endif %}

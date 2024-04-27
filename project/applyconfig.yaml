@@ -19,6 +19,22 @@
           timeout: 300
       when: ansible_network_os is defined and ansible_network_os == 'sense.dellos9.dellos9'
 
+    - name: Build Config Templates for IPv6 Prefix List Creation/Removal (Dell OS 10)
+      template:
+        src: "{{ template_before_name }}"
+        dest: /var/tmp/{{ inventory_hostname }}_before.conf
+      when: ansible_network_os is defined and ansible_network_os == 'sense.dellos10.dellos10'
+
+    - name: Push Dell OS 10 Config (Before)
+      sense.dellos10.dellos10_config:
+        src: /var/tmp/{{ inventory_hostname }}_before.conf
+        save: yes
+        provider:
+          host: "{{ ansible_host }}"
+          timeout: 300
+      ignore_errors: true
+      when: ansible_network_os is defined and ansible_network_os == 'sense.dellos10.dellos10'
+
     - name: Push Dell OS 10 Config
       sense.dellos10.dellos10_config:
         src: /var/tmp/{{ inventory_hostname }}.conf
