@@ -112,7 +112,7 @@ interface {{ key }}
             {% for permitval , routes in rmapdict.items() %}
               {% for routename, routestate in routes.items() %}
                 {% if routestate == "absent" %}
-no route-map {{ rmapname }} permit {{ permitval }}
+no route-map {{ rmapname }}
                 {% endif %}
                 {% if routestate == "present" %}
 route-map {{ rmapname }} permit {{ permitval }}
