@@ -18,8 +18,8 @@
 #########################################}
 {% if ping is defined and ping %}
   {% if ping.type == 'ipv6' %}
-ping{% if ping.vrf %} vrf {{ ping.vrf }}{% endif %} ipv6 {{ ping.ipv6_address }} timeout {{ ping.timeout }} repeat {{ ping.count }}
+ping{% if ping.vrf is defined and ping.vrf %} vrf {{ ping.vrf }}{% endif %} ipv6 {{ ping.ipv6_address }} timeout {{ ping.timeout }} repeat {{ ping.count }}
   {% elif ping.type == 'ipv4' %}
-ping{% if ping.vrf %} vrf {{ ping.vrf }}{% endif %} ip {{ ping.ipv4_address }} timeout {{ ping.timeout }} repeat {{ ping.count }}
+ping{% if ping.vrf is defined and ping.vrf %} vrf {{ ping.vrf }}{% endif %} ip {{ ping.ipv4_address }} timeout {{ ping.timeout }} repeat {{ ping.count }}
   {% endif %}
 {% endif %}
