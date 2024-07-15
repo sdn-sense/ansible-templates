@@ -1,0 +1,25 @@
+#jinja2: lstrip_blocks: "True", trim_blocks: "True"
+{##########################################
+#Purpose:
+#Configure Ping Command to be executed on the device
+#ping:
+#  type: ipv6
+#  vrf: lhcone
+#  ipv6_address: 2001:48d0:3001:111::
+#  count: 10
+#  timeout: 5
+# OR:
+#ping:
+#  type: ipv4
+#  vrf: lhcone
+#  ipv4_address: 8.8.8.8
+#  count: 10
+#  timeout: 5
+#########################################}
+{% if ping is defined and ping %}
+  {% if ping.type == 'ipv6' %}
+ping6{% if ping.vrf %} vrf {{ ping.vrf }}{% endif %} {{ ping.ipv6_address }} -c {{ ping.count }} -i {{ ping.timeout }}
+  {% elif ping.type == 'ipv4' %}
+ping{% if ping.vrf %} vrf {{ ping.vrf }}{% endif %} {{ ping.ipv4_address }} -c {{ ping.count }} -i {{ ping.timeout }}
+  {% endif %}
+{% endif %}

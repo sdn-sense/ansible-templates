@@ -1,4 +1,6 @@
 template_name: aristaeos.j2
+template_name_ping: aristaeos_ping.j2
+template_name_traceroute: aristaeos_traceroute.j2
 ansible_become: true
 ansible_become_method: enable
 ansible_connection: ansible.netcommon.network_cli

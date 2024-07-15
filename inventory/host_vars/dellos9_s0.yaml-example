@@ -1,4 +1,6 @@
 template_name: dellos9.j2
+template_name_ping: dellos9_ping.j2
+template_name_traceroute: dellos9_traceroute.j2
 ansible_become: false
 ansible_network_os: sense.dellos9.dellos9
 ansible_ssh_pass: MySuperDuperPassword

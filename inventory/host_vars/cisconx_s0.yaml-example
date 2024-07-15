@@ -1,4 +1,6 @@
-template_name: cisconx.j2
+template_name: cisconx9.j2
+template_name_ping: cisconx9_ping.j2
+template_name_traceroute: cisconx9_traceroute.j2
 ansible_become: false
 ansible_network_os: sense.cisconx9.cisconx9
 ansible_ssh_pass: MySuperDuperPassword

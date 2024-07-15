@@ -1,0 +1,53 @@
+---
+- name: Execute Traceroute
+  hosts: all
+  connection: network_cli
+  gather_facts: no
+  tasks:
+    - name: Build Config Templates for Traceroute
+      template:
+        src: "{{ template_name_traceroute }}"
+        dest: /var/tmp/traceroute_{{ inventory_hostname }}.conf
+      when: ansible_network_os is defined and ansible_network_os != "sense.sonic.sonic"
+
+    - name: Push Dell OS 9 Traceroute Request
+      sense.dellos9.dellos9_command:
+        src: /var/tmp/traceroute_{{ inventory_hostname }}.conf
+        provider:
+          host: "{{ ansible_host }}"
+          timeout: 300
+      when: ansible_network_os is defined and ansible_network_os == 'sense.dellos9.dellos9'
+
+    - name: Push Dell OS 10 Traceroute Request
+      sense.dellos10.dellos10_command:
+        src: /var/tmp/traceroute_{{ inventory_hostname }}.conf
+        provider:
+          host: "{{ ansible_host }}"
+          timeout: 300
+      when: ansible_network_os is defined and ansible_network_os == 'sense.dellos10.dellos10'
+
+    - name: Push Arista EOS Traceroute Request
+      sense.aristaeos.aristaeos_command:
+        src: /var/tmp/traceroute_{{ inventory_hostname }}.conf
+      when: ansible_network_os is defined and ansible_network_os == "sense.aristaeos.aristaeos"
+
+    - name: Push Cisco NX Traceroute Request
+      sense.cisconx9.cisconx9_command:
+        src: /var/tmp/traceroute_{{ inventory_hostname }}.conf
+        provider:
+          host: "{{ ansible_host }}"
+          timeout: 300
+      when: ansible_network_os is defined and ansible_network_os == "sense.cisconx9.cisconx9"
+
+    - name: Build Traceroute templates for SONiC
+      template:
+        src: "{{ template_name_traceroute }}"
+        dest: /tmp/traceroute_{{ inventory_hostname }}.conf
+      when: ansible_network_os is defined and ansible_network_os == "sense.sonic.sonic"
+
+    - name: Push Azure Sonic Traceroute
+      sense.sonic.sonic_command:
+        sonic_debug: False
+        sonic_traceroute: /tmp/traceroute_{{ inventory_hostname }}.conf
+      when: ansible_network_os is defined and ansible_network_os == "sense.sonic.sonic"
+

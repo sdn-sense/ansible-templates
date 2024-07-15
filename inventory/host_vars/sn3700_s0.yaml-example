@@ -1,4 +1,6 @@
 template_name: sonic.j2
+template_name_ping: sonic_ping.j2
+template_name_traceroute: sonic_traceroute.j2
 ansible_become: false
 ansible_connection: ansible.netcommon.libssh
 ansible_network_os: sense.sonic.sonic
