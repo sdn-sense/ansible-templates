@@ -17,9 +17,5 @@
 #  timeout: 5
 #########################################}
 {% if ping is defined and ping %}
-  {% if ping.type == 'ipv6' %}
-ping {{ ping.ipv6_address }} -c {{ ping.count }} -i {{ ping.timeout }}
-  {% elif ping.type == 'ipv4' %}
-ping {{ ping.ipv4_address }} -c {{ ping.count }} -i {{ ping.timeout }}
-  {% endif %}
+PING: {{ ping }}
 {% endif %}
