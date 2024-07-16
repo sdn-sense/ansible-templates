@@ -14,8 +14,8 @@
 #########################################}
 {% if traceroute is defined and traceroute %}
   {% if traceroute.type == 'ipv6' %}
-traceroute{% if traceroute.vrf %} vrf {{ traceroute.vrf }}{% endif %} {{ traceroute.ipv6_address }}
+traceroute{% if traceroute.vrf is defined and traceroute.vrf %} vrf {{ traceroute.vrf }}{% endif %} {{ traceroute.ipv6_address }}
   {% elif traceroute.type == 'ipv4' %}
-traceroute{% if traceroute.vrf %} vrf {{ traceroute.vrf }}{% endif %} {{ traceroute.ipv4_address }}
+traceroute{% if traceroute.vrf is defined and traceroute.vrf %} vrf {{ traceroute.vrf }}{% endif %} {{ traceroute.ipv4_address }}
   {% endif %}
 {% endif %}
