@@ -1,0 +1,14 @@
+template_name: frr.j2
+template_name_ping: frr_ping.j2
+template_name_traceroute: frr_traceroute.j2
+ansible_become: false
+ansible_connection: ansible.netcommon.libssh
+ansible_network_os: sense.frr.frr
+ansible_ssh_pass: MySuperDuperPassword
+ansible_ssh_user: MySuperDuperUsername
+hostname: frr_s0
+# For snmp monitoring parameters, see Session API parameters: https://easysnmp.readthedocs.io/en/latest/session_api.html
+snmp_monitoring:
+  hostname: 1.2.3.4
+  community: 'community'
+  version: 2

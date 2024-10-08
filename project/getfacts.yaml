@@ -22,7 +22,7 @@
     register: facts
     when: ansible_network_os is defined and ansible_network_os == "sense.aristaeos.aristaeos"
 
-  - name: Gather  Azure SONiC Facts
+  - name: Gather Azure SONiC Facts
     sense.sonic.sonic_facts:
       gather_subset: all
     register: facts
@@ -39,3 +39,9 @@
       gather_subset: all
     register: facts
     when: ansible_network_os is defined and ansible_network_os == "sense.cisconx9.cisconx9"
+
+  - name: Gather FRR Facts
+    sense.frr.frr_facts:
+      gather_subset: all
+    register: facts
+    when: ansible_network_os is defined and ansible_network_os == "sense.frr.frr"

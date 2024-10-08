@@ -15,3 +15,9 @@
         src: "{{ template_name }}"
         dest: /var/tmp/debug-{{ inventory_hostname }}.conf
       when: ansible_network_os is defined and ansible_network_os == "sense.sonic.sonic"
+
+    - name: Generate commands for device cleaning (only FRR)
+      template:
+        src: "{{ template_name }}"
+        dest: /var/tmp/debug-{{ inventory_hostname }}.conf
+      when: ansible_network_os is defined and ansible_network_os == "sense.frr.frr"

@@ -1,0 +1,17 @@
+#jinja2: lstrip_blocks: "True", trim_blocks: "True"
+{##########################################
+#Purpose:
+#Configure Traceroute Command to be executed on the device
+#traceroute:
+#  type: ipv6
+#  vrf: lhcone
+#  ipv6_address: 2001:48d0:3001:111::
+# OR
+#traceroute:
+#  type: ipv4
+#  vrf: lhcone
+#  ipv4_address: 8.8.8.8
+#########################################}
+{% if traceroute is defined and traceroute %}
+TRACEROUTE: {{ traceroute }}
+{% endif %}

@@ -8,7 +8,7 @@
       template:
         src: "{{ template_name_traceroute }}"
         dest: /var/tmp/traceroute_{{ inventory_hostname }}.conf
-      when: ansible_network_os is defined and ansible_network_os != "sense.sonic.sonic"
+      when: ansible_network_os is defined and ansible_network_os != "sense.sonic.sonic" and ansible_network_os != "sense.frr.frr"
 
     - name: Push Dell OS 9 Traceroute Request
       sense.dellos9.dellos9_command:
@@ -51,3 +51,14 @@
         sonic_traceroute: /tmp/traceroute_{{ inventory_hostname }}.conf
       when: ansible_network_os is defined and ansible_network_os == "sense.sonic.sonic"
 
+    - name: Build Traceroute templates for FRR
+      template:
+        src: "{{ template_name_traceroute }}"
+        dest: /tmp/traceroute_{{ inventory_hostname }}.conf
+      when: ansible_network_os is defined and ansible_network_os == "sense.frr.frr"
+
+    - name: Push Azure Sonic Traceroute
+      sense.frr.frr_command:
+        frr_debug: False
+        frr_traceroute: /tmp/traceroute_{{ inventory_hostname }}.conf
+      when: ansible_network_os is defined and ansible_network_os == "sense.frr.frr"

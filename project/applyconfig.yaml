@@ -8,7 +8,7 @@
       template:
         src: "{{ template_name }}"
         dest: /var/tmp/{{ inventory_hostname }}.conf
-      when: ansible_network_os is defined and ansible_network_os != "sense.sonic.sonic"
+      when: ansible_network_os is defined and ansible_network_os != "sense.sonic.sonic" and ansible_network_os != "sense.frr.frr"
 
     - name: Push Dell OS 9 Config
       sense.dellos9.dellos9_config:
@@ -23,7 +23,7 @@
       template:
         src: "{{ template_before_name }}"
         dest: /var/tmp/{{ inventory_hostname }}_before.conf
-      when: ansible_network_os is defined and ansible_network_os != "sense.sonic.sonic"
+      when: ansible_network_os is defined and ansible_network_os != "sense.sonic.sonic" and ansible_network_os != "sense.frr.frr"
 
     - name: Push Dell OS 10 Config (Before)
       sense.dellos10.dellos10_config:
@@ -70,3 +70,14 @@
         sonic_config: /tmp/{{ inventory_hostname }}.conf
       when: ansible_network_os is defined and ansible_network_os == "sense.sonic.sonic"
 
+    - name: Build Config Templates for Vlan Creation/Removal for FRR
+      template:
+        src: "{{ template_name }}"
+        dest: /tmp/{{ inventory_hostname }}.conf
+      when: ansible_network_os is defined and ansible_network_os == "sense.frr.frr"
+
+    - name: Push FRR Config
+      sense.frr.frr_config:
+        frr_debug: False
+        frr_config: /tmp/{{ inventory_hostname }}.conf
+      when: ansible_network_os is defined and ansible_network_os == "sense.frr.frr"
