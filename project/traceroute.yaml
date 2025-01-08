@@ -62,3 +62,8 @@
         frr_debug: False
         frr_traceroute: /tmp/traceroute_{{ inventory_hostname }}.conf
       when: ansible_network_os is defined and ansible_network_os == "sense.frr.frr"
+
+    - name: Push Juniper Junos Traceroute Request
+      sense.junos.junos_command:
+        src: /var/tmp/traceroute_{{ inventory_hostname }}.conf
+      when: ansible_network_os is defined and ansible_network_os == "sense.junos.junos"

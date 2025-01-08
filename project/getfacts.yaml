@@ -45,3 +45,9 @@
       gather_subset: all
     register: facts
     when: ansible_network_os is defined and ansible_network_os == "sense.frr.frr"
+
+  - name: Gather Juniper Junos Facts
+    sense.junos.junos_facts:
+      gather_subset: all
+    register: facts
+    when: ansible_network_os is defined and ansible_network_os == "sense.junos.junos"
