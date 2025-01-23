@@ -1,0 +1,144 @@
+#jinja2: lstrip_blocks: "True", trim_blocks: "True"
+{##########################################
+#Purpose:
+#Configure VLAN Interface commands for Junos
+ansible_become: false
+ansible_network_os: sense.junos.junos
+ansible_ssh_pass: SuperDuperPassword
+ansible_ssh_user: SuperDuperUsername
+hostname: junos_s0
+interface:
+  Vlan 3607:
+    description: urn:ogf:network:service+858b5c37-5af7-4e8a-9dc7-747abb7e0928:vt+l2-policy::Connection_1
+    ipv6_address: {'fc00:0:0:0:0:0:0:16/124': present}
+    name: Vlan 3607
+    vlanid: 3607
+    state: present
+    tagged_members: {et-0/0/11: present}
+    vrf: lhcone
+sense_bgp:
+  asn: '64513'
+  ipv6_network: {'2605:d9c0:2:fff1::/64': present}
+  neighbor:
+    ipv6:
+      fc00:0:0:0:0:0:0:17/124:
+        remote_asn: '65000'
+        route_map:
+          in: {sense-f20aa5a51d2ab2fc9e5182621d00abd3-mapin: present}
+          out: {sense-f20aa5a51d2ab2fc9e5182621d00abd3-mapout: present}
+        state: present
+  prefix_list:
+    ipv4: {}
+    ipv6:
+      2001:48d0:3001:110::/64: {sense-f20aa5a51d2ab2fc9e5182621d00abd3-from: present}
+      2605:d9c0:2:fff1::/64: {sense-f20aa5a51d2ab2fc9e5182621d00abd3-to: present}
+  route_map:
+    ipv6:
+      sense-f20aa5a51d2ab2fc9e5182621d00abd3-mapin: {sense-f20aa5a51d2ab2fc9e5182621d00abd3-from: present}
+      sense-f20aa5a51d2ab2fc9e5182621d00abd3-mapout: {sense-f20aa5a51d2ab2fc9e5182621d00abd3-to: present}
+  state: present
+  vrf: lhcone
+#########################################}
+{% if interface is defined and interface %}
+{% for key, value in interface.items() %}
+  {% if value.state == 'present' %}
+set vlans {{ value.name }}
+set vlans {{ value.name }} vlan-id {{ value.vlanid }}
+set vlans {{ value.name }} description "{{ value.description }}"
+    {% if value.tagged_members %}
+      {% for member, state in value.tagged_members.items() %}
+        {% if state == 'present' %}
+set interfaces {{ member }} unit 0 family ethernet-switching vlan members {{ value.name }}
+        {% endif %}
+      {% endfor %}
+    {% endif %}
+    {% if value.ipv6_address %}
+      {% for ip, state in value.ipv6_address.items() %}
+        {% if state == 'present' %}
+set routing-instances interface {{ value.name }}.0 family inet6 address {{ ip }}
+        {% endif %}
+      {% endfor %}
+    {% endif %}
+    {% if value.ipv4_address %}
+      {% for ip, state in value.ipv4_address.items() %}
+        {% if state == 'present' %}
+set routing-instances {{ value.vrf }} interface {{ value.name }}.0 family inet address {{ ip }}
+        {% endif %}
+      {% endfor %}
+    {% endif %}
+  {% elif value.state == 'absent' %}
+delete vlans {{ value.name }}
+    {% if value.tagged_members %}
+      {% for member, state in value.tagged_members.items() %}
+delete interfaces {{ member }} unit 0 family ethernet-switching vlan members {{ value.name }}
+      {% endfor %}
+    {% endif %}
+    {% if value.ipv6_address %}
+      {% for ip, state in value.ipv6_address.items() %}
+delete routing-instances {{ value.vrf }} interface {{ value.name }}.0 family inet6 address {{ ip }}
+      {% endfor %}
+    {% endif %}
+    {% if value.ipv4_address %}
+      {% for ip, state in value.ipv4_address.items() %}
+delete routing-instances {{ value.vrf }} interface {{ value.name }}.0 family inet address {{ ip }}
+      {% endfor %}
+    {% endif %}
+  {% endif %}
+{% endfor %}
+{% endif %}
+
+{% if sense_bgp.state == 'present' %}
+set routing-options autonomous-system {{ sense_bgp.asn }}
+  {% if sense_bgp.ipv6_network %}
+    {% for network, state in sense_bgp.ipv6_network.items() %}
+      {% if state == 'present' %}
+set routing-options rib inet6.0 static route {{ network }}
+      {% elif state == 'absent' %}
+delete routing-options rib inet6.0 static route {{ network }}
+      {% endif %}
+    {% endfor %}
+  {% endif %}
+  {% if sense_bgp.neighbor and sense_bgp.neighbor.ipv6 %}
+    {% for neighbor, details in sense_bgp.neighbor.ipv6.items() %}
+      {% if details.state == 'present' %}
+set protocols bgp group SENSE-BGP-IPv6 neighbor {{ neighbor.split('/')[0] }} peer-as {{ details.remote_asn }}
+        {% if details.route_map %}
+          {% for direction, maps in details.route_map.items() %}
+            {% for map_name, state in maps.items() %}
+              {% if state == 'present' %}
+set protocols bgp group SENSE-BGP-IPv6 neighbor {{ neighbor.split('/')[0] }} {{ 'import' if direction == 'in' else 'export' }} {{ map_name }}
+              {% elif state == 'absent' %}
+delete protocols bgp group SENSE-BGP-IPv6 neighbor {{ neighbor.split('/')[0] }} {{ 'import' if direction == 'in' else 'export' }} {{ map_name }}
+              {% endif %}
+            {% endfor %}
+          {% endfor %}
+        {% endif %}
+      {% elif details.state == 'absent' %}
+delete protocols bgp group SENSE-BGP-IPv6 neighbor {{ neighbor.split('/')[0] }} peer-as {{ details.remote_asn }}
+      {% endif %}
+    {% endfor %}
+  {% endif %}
+  {% if sense_bgp.prefix_list and sense_bgp.prefix_list.ipv6 %}
+    {% for prefix, details in sense_bgp.prefix_list.ipv6.items() %}
+      {% for map_name, state in details.items() %}
+        {% if state == 'present' %}
+set policy-options prefix-list {{ map_name }} {{ prefix }}
+        {% elif state == 'absent' %}
+delete policy-options prefix-list {{ map_name }} {{ prefix }}
+        {% endif %}
+      {% endfor %}
+    {% endfor %}
+  {% endif %}
+  {% if sense_bgp.route_map and sense_bgp.route_map.ipv6 %}
+    {% for map_name, details in sense_bgp.route_map.ipv6.items() %}
+      {% for prefix_list, state in details.items() %}
+        {% if state == 'present' %}
+set policy-options policy-statement {{ map_name }} term 1 from prefix-list {{ prefix_list }}
+set policy-options policy-statement {{ map_name }} term 1 then accept
+        {% elif state == 'absent' %}
+delete policy-options policy-statement {{ map_name }}
+        {% endif %}
+      {% endfor %}
+    {% endfor %}
+  {% endif %}
+{% endif %}

@@ -1,0 +1,13 @@
+template_name: junos.j2
+template_name_ping: junos_ping.j2
+template_name_traceroute: junos_traceroute.j2
+ansible_become: false
+ansible_network_os: sense.junos.junos
+ansible_ssh_pass: MySuperDuperPassword
+ansible_ssh_user: MySuperDuperUsername
+hostname: junos_s0
+# For snmp monitoring parameters, see Session API parameters: https://easysnmp.readthedocs.io/en/latest/session_api.html
+snmp_monitoring:
+  hostname: 1.2.3.4
+  community: 'community'
+  version: 2

@@ -81,3 +81,12 @@
         frr_debug: False
         frr_config: /tmp/{{ inventory_hostname }}.conf
       when: ansible_network_os is defined and ansible_network_os == "sense.frr.frr"
+
+    - name: Push Juniper Junos Config
+      sense.junos.junos_config:
+        src: /var/tmp/{{ inventory_hostname }}.conf
+        save: yes
+        provider:
+          host: "{{ ansible_host }}"
+          timeout: 300
+      when: ansible_network_os is defined and ansible_network_os == "sense.junos.junos"
