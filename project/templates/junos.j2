@@ -41,55 +41,57 @@ sense_bgp:
 #########################################}
 {% if interface is defined and interface %}
 {% for key, value in interface.items() %}
-  {% if value.state == 'present' %}
+  {% if value.state is defined and value.state == 'present' %}
 set vlans {{ value.name }}
 set vlans {{ value.name }} vlan-id {{ value.vlanid }}
 set vlans {{ value.name }} description "{{ value.description }}"
-    {% if value.tagged_members %}
+    {% if value.tagged_members is defined and value.tagged_members %}
       {% for member, state in value.tagged_members.items() %}
         {% if state == 'present' %}
 set interfaces {{ member }} unit 0 family ethernet-switching vlan members {{ value.name }}
         {% endif %}
       {% endfor %}
     {% endif %}
-    {% if value.ipv6_address %}
+    {% if value.ipv6_address is defined and value.ipv6_address %}
       {% for ip, state in value.ipv6_address.items() %}
         {% if state == 'present' %}
-set routing-instances interface {{ value.name }}.0 family inet6 address {{ ip }}
+set interfaces vlan unit {{ value.vlanid }} family inet6 address {{ ip }}
+set vlans {{ value.name }} vlan-id {{ value.vlanid }} l3-interface vlan.{{ value.vlanid }}
         {% endif %}
       {% endfor %}
     {% endif %}
-    {% if value.ipv4_address %}
+    {% if value.ipv4_address is defined and value.ipv4_address %}
       {% for ip, state in value.ipv4_address.items() %}
         {% if state == 'present' %}
-set routing-instances {{ value.vrf }} interface {{ value.name }}.0 family inet address {{ ip }}
+set interfaces vlan unit {{ value.vlanid }} family inet address {{ ip }}
+set vlans {{ value.name }} vlan-id {{ value.vlanid }} l3-interface vlan.{{ value.vlanid }}
         {% endif %}
       {% endfor %}
     {% endif %}
-  {% elif value.state == 'absent' %}
+  {% elif value.state is defined and value.state == 'absent' %}
 delete vlans {{ value.name }}
-    {% if value.tagged_members %}
+    {% if value.tagged_members is defined and value.tagged_members %}
       {% for member, state in value.tagged_members.items() %}
 delete interfaces {{ member }} unit 0 family ethernet-switching vlan members {{ value.name }}
       {% endfor %}
     {% endif %}
-    {% if value.ipv6_address %}
+    {% if value.ipv6_address is defined and value.ipv6_address %}
       {% for ip, state in value.ipv6_address.items() %}
-delete routing-instances {{ value.vrf }} interface {{ value.name }}.0 family inet6 address {{ ip }}
+delete interfaces vlan unit {{ value.vlanid }} family inet6 address {{ ip }}
       {% endfor %}
     {% endif %}
-    {% if value.ipv4_address %}
+    {% if value.ipv4_address is defined and value.ipv4_address %}
       {% for ip, state in value.ipv4_address.items() %}
-delete routing-instances {{ value.vrf }} interface {{ value.name }}.0 family inet address {{ ip }}
+delete interfaces vlan unit {{ value.vlanid }} family inet address {{ ip }}
       {% endfor %}
     {% endif %}
   {% endif %}
 {% endfor %}
 {% endif %}
 
-{% if sense_bgp.state == 'present' %}
+{% if sense_bgp and sense_bgp.state == 'present' %}
 set routing-options autonomous-system {{ sense_bgp.asn }}
-  {% if sense_bgp.ipv6_network %}
+  {% if sense_bgp.ipv6_network and sense_bgp.ipv6_network %}
     {% for network, state in sense_bgp.ipv6_network.items() %}
       {% if state == 'present' %}
 set routing-options rib inet6.0 static route {{ network }}
