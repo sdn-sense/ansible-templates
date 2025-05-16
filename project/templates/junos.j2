@@ -105,6 +105,7 @@ delete interfaces {{ member }} unit 0 family ethernet-switching vlan members {{ 
 delete interfaces vlan unit {{ value.vlanid }} family inet6 address {{ ip }}
           {% elif vlancmd == 'irb' %}
 delete interfaces irb unit {{ value.vlanid }} family inet6 address {{ ip }}
+delete interfaces irb unit {{ value.vlan.id }}
           {% endif %}
       {% endfor %}
     {% endif %}
@@ -114,6 +115,7 @@ delete interfaces irb unit {{ value.vlanid }} family inet6 address {{ ip }}
 delete interfaces vlan unit {{ value.vlanid }} family inet address {{ ip }}
         {% elif vlancmd == 'irb' %}
 delete interfaces irb unit {{ value.vlanid }} family inet address {{ ip }}
+delete interfaces irb unit {{ value.vlan.id }}
         {% endif %}
       {% endfor %}
     {% endif %}
@@ -122,33 +124,34 @@ delete interfaces irb unit {{ value.vlanid }} family inet address {{ ip }}
 {% endif %}
 
 {% if sense_bgp is defined and sense_bgp %}
+  {% set group_name = sense_bgp.groupName | default('DEFAULTSENSE') %}
   {% if sense_bgp.state == 'present' %}
-set protocols bgp group SENSE-BGP-{{ sense_bgp.groupName }} type external
-set protocols bgp group SENSE-BGP-{{ sense_bgp.groupName }} local-as {{ sense_bgp.asn }}
-    {% if sense_bgp.ipv6_network and sense_bgp.ipv6_network %}
-set protocols bgp group SENSE-BGP-{{ sense_bgp.groupName }} family inet6 unicast
+set protocols bgp group SENSE-BGP-{{ group_name }} type external
+set protocols bgp group SENSE-BGP-{{ group_name }} local-as {{ sense_bgp.asn }}
+    {% if sense_bgp.ipv6_network is defined and sense_bgp.ipv6_network %}
+set protocols bgp group SENSE-BGP-{{ group_name }} family inet6 unicast
     {% endif %}
-    {% if sense_bgp.neighbor and sense_bgp.neighbor.ipv6 %}
+    {% if sense_bgp.neighbor is defined and sense_bgp.neighbor.ipv6 is defined %}
       {% for neighbor, details in sense_bgp.neighbor.ipv6.items() %}
         {% if details.state == 'present' %}
-set protocols bgp group SENSE-BGP-{{ sense_bgp.groupName }} neighbor {{ neighbor.split('/')[0] }} peer-as {{ details.remote_asn }}
+set protocols bgp group SENSE-BGP-{{ group_name }} neighbor {{ neighbor.split('/')[0] }} peer-as {{ details.remote_asn }}
           {% if details.route_map %}
             {% for direction, maps in details.route_map.items() %}
               {% for map_name, state in maps.items() %}
                 {% if state == 'present' %}
-set protocols bgp group SENSE-BGP-{{ sense_bgp.groupName }} neighbor {{ neighbor.split('/')[0] }} {{ 'import' if direction == 'in' else 'export' }} {{ map_name }}
+set protocols bgp group SENSE-BGP-{{ group_name }} neighbor {{ neighbor.split('/')[0] }} {{ 'import' if direction == 'in' else 'export' }} {{ map_name }}
                 {% elif state == 'absent' %}
-delete protocols bgp group SENSE-BGP-{{ sense_bgp.groupName }} neighbor {{ neighbor.split('/')[0] }} {{ 'import' if direction == 'in' else 'export' }} {{ map_name }}
+delete protocols bgp group SENSE-BGP-{{ group_name }} neighbor {{ neighbor.split('/')[0] }} {{ 'import' if direction == 'in' else 'export' }} {{ map_name }}
                 {% endif %}
               {% endfor %}
             {% endfor %}
           {% endif %}
         {% elif details.state == 'absent' %}
-delete protocols bgp group SENSE-BGP-{{ sense_bgp.groupName }} neighbor {{ neighbor.split('/')[0] }} peer-as {{ details.remote_asn }}
+delete protocols bgp group SENSE-BGP-{{ group_name }} neighbor {{ neighbor.split('/')[0] }} peer-as {{ details.remote_asn }}
        {% endif %}
      {% endfor %}
    {% endif %}
-   {% if sense_bgp.prefix_list and sense_bgp.prefix_list.ipv6 %}
+   {% if sense_bgp.prefix_list is defined and sense_bgp.prefix_list.ipv6 is defined %}
      {% for prefix, details in sense_bgp.prefix_list.ipv6.items() %}
        {% for map_name, state in details.items() %}
          {% if state == 'present' %}
@@ -159,7 +162,7 @@ delete policy-options prefix-list {{ map_name }} {{ prefix }}
        {% endfor %}
      {% endfor %}
    {% endif %}
-   {% if sense_bgp.route_map and sense_bgp.route_map.ipv6 %}
+   {% if sense_bgp.route_map is defined and sense_bgp.route_map.ipv6 is defined %}
      {% for map_name, details in sense_bgp.route_map.ipv6.items() %}
        {% for prefix_list, state in details.items() %}
          {% if state == 'present' %}
@@ -173,8 +176,8 @@ delete policy-options policy-statement {{ map_name }}
      {% endfor %}
    {% endif %}
   {% elif sense_bgp.state == 'absent' %}
-delete protocols bgp group SENSE-BGP-{{ sense_bgp.groupName }}
-    {% if sense_bgp.prefix_list and sense_bgp.prefix_list.ipv6 %}
+delete protocols bgp group SENSE-BGP-{{ group_name }}
+    {% if sense_bgp.prefix_list is defined and sense_bgp.prefix_list.ipv6 is defined %}
       {% for prefix, details in sense_bgp.prefix_list.ipv6.items() %}
         {% for map_name, state in details.items() %}
           {% if state == 'absent' %}
@@ -183,7 +186,7 @@ delete policy-options prefix-list {{ map_name }} {{ prefix }}
         {% endfor %}
       {% endfor %}
     {% endif %}
-    {% if sense_bgp.route_map and sense_bgp.route_map.ipv6 %}
+    {% if sense_bgp.route_map is defined and sense_bgp.route_map.ipv6 is defined %}
       {% for map_name, details in sense_bgp.route_map.ipv6.items() %}
         {% for prefix_list, state in details.items() %}
           {% if state == 'absent' %}
