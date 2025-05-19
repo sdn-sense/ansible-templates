@@ -123,7 +123,7 @@ delete interfaces irb unit {{ value.vlanid }}
 {% endif %}
 
 {% if sense_bgp is defined and sense_bgp.state is defined and sense_bgp.state == 'present' %}
-  {% set group_name = sense_bgp.groupName | default('DEFAULTSENSE') %}
+  {% set group_name = sense_bgp.groupName | default('DEFAULT') %}
   {% if (sense_bgp.ipv6_network is not defined or sense_bgp.ipv6_network|length == 0)
      and (sense_bgp.neighbor is not defined or sense_bgp.neighbor|length == 0)
      and (sense_bgp.prefix_list is not defined or sense_bgp.prefix_list|length == 0)
