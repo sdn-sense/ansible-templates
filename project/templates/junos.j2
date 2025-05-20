@@ -122,18 +122,22 @@ delete interfaces irb unit {{ value.vlanid }}
 {% endfor %}
 {% endif %}
 
-{% if sense_bgp is defined and sense_bgp.state is defined and sense_bgp.state == 'present' %}
+{% if sense_bgp is defined and sense_bgp.state is defined %}
   {% set group_name = sense_bgp.groupName | default('DEFAULT') %}
-  {% if (sense_bgp.ipv6_network is not defined or sense_bgp.ipv6_network|length == 0)
-     and (sense_bgp.neighbor is not defined or sense_bgp.neighbor|length == 0)
-     and (sense_bgp.prefix_list is not defined or sense_bgp.prefix_list|length == 0)
-     and (sense_bgp.route_map is not defined or sense_bgp.route_map|length == 0) %}
-delete protocols bgp group SENSE-BGP-{{ group_name }}
-  {% elif sense_bgp.ipv6_network is defined or sense_bgp.neighbor is defined or sense_bgp.prefix_list is defined or sense_bgp.route_map is defined %}
+  {% if sense_bgp.ipv6_network is defined or sense_bgp.neighbor is defined or sense_bgp.prefix_list is defined or sense_bgp.route_map is defined %}
+    {% if sense_bgp.state == 'present' %}
 set protocols bgp group SENSE-BGP-{{ group_name }} type external
 set protocols bgp group SENSE-BGP-{{ group_name }} local-as {{ sense_bgp.asn }}
+    {% else %}
+delete protocols bgp group SENSE-BGP-{{ group_name }} type external
+delete protocols bgp group SENSE-BGP-{{ group_name }} local-as {{ sense_bgp.asn }}
+    {% endif %}
     {% if sense_bgp.ipv6_network is defined and sense_bgp.ipv6_network %}
+      {% if sense_bgp.state == 'present' %}
 set protocols bgp group SENSE-BGP-{{ group_name }} family inet6 unicast
+      {% else %}
+delete protocols bgp group SENSE-BGP-{{ group_name }} family inet6 unicast
+      {% endif %}
     {% endif %}
     {% if sense_bgp.neighbor is defined and sense_bgp.neighbor.ipv6 is defined %}
       {% for neighbor, details in sense_bgp.neighbor.ipv6.items() %}
@@ -152,6 +156,16 @@ delete protocols bgp group SENSE-BGP-{{ group_name }} neighbor {{ neighbor.split
           {% endif %}
         {% elif details.state == 'absent' %}
 delete protocols bgp group SENSE-BGP-{{ group_name }} neighbor {{ neighbor.split('/')[0] }} peer-as {{ details.remote_asn }}
+delete protocols bgp group SENSE-BGP-{{ group_name }} neighbor {{ neighbor.split('/')[0] }}
+          {% if details.route_map %}
+            {% for direction, maps in details.route_map.items() %}
+              {% for map_name, state in maps.items() %}
+                {% if state == 'absent' %}
+delete protocols bgp group SENSE-BGP-{{ group_name }} neighbor {{ neighbor.split('/')[0] }} {{ 'import' if direction == 'in' else 'export' }} {{ map_name }}
+                {% endif %}
+              {% endfor %}
+            {% endfor %}
+          {% endif %}
        {% endif %}
      {% endfor %}
    {% endif %}
