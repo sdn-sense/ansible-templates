@@ -128,7 +128,7 @@ route-map {{ rmapname }} permit {{ permitval }}
 
 {# Apply all Router config #}
   {% if bgp.asn is defined and bgp.asn %}
-    {% if bgp.state is defined and bgp.state == "present" %}
+    {% if bgp.state is defined %}
 router bgp {{ bgp.asn }}
       {% if bgp.vrf is defined %}
  vrf {{ bgp.vrf }}

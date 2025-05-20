@@ -112,8 +112,7 @@ interface {{ key }}
             {% for prefname, prefstate in prefdict.items() %}
               {% if prefstate == "absent" %}
 no {{ ipname }} prefix-list {{ prefname }}
-              {% endif %}
-              {% if prefstate == "present" %}
+              {% elif prefstate == "present" %}
 {{ ipname }} prefix-list {{ prefname }} permit {{ prefip }}
               {% endif %}
             {% endfor %}
@@ -136,8 +135,7 @@ no {{ ipname }} prefix-list {{ prefname }}
               {% for routename, routestate in routes.items() %}
                 {% if routestate == "absent" %}
 no route-map {{ rmapname }} permit {{ permitval }}
-                {% endif %}
-                {% if routestate == "present" %}
+                {% elif routestate == "present" %}
 route-map {{ rmapname }} permit {{ permitval }}
  match {{ ipname }} address prefix-list {{ routename }}
                 {% endif %}
@@ -150,7 +148,7 @@ route-map {{ rmapname }} permit {{ permitval }}
   {% endif %}
 {# Apply all IPv6 Router config #}
   {% if bgp.asn is defined and bgp.asn %}
-    {% if bgp.state is defined and bgp.state == "present" %}
+    {% if bgp.state is defined %}
 router bgp {{ bgp.asn }}
       {% set addr_fam_v6 = "address-family ipv6 unicast" %}
 {# In Future apply using VRF if VRF is needed #}
