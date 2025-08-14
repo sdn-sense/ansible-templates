@@ -70,3 +70,90 @@ interface {{ key }}
     {% endif %}
   {% endfor %}
 {% endif %}
+
+{# Configure quality of Service #}
+{##########################################
+#Purpose:
+#Configure QoS commands for arista eos Devices
+# Examples below of configuration passed by the RM to create QoS policies
+qos:
+  Ethernet12-1-3616:
+    burst_size: 256
+    max_rate: 50000
+    min_rate: 50000
+    port: Ethernet12/1
+    qosname: guaranteedCapped
+    qosnumber: 7
+    state: present
+    unit: mbit
+    vlan: 3616
+  Port-Channel502-3616:
+    burst_size: 256
+    max_rate: 50000
+    min_rate: 50000
+    port: Port-Channel502
+    qosname: guaranteedCapped
+    qosnumber: 7
+    state: present
+    unit: mbit
+    vlan: 3616
+#########################################}
+{% if qos is defined and qos %}
+{% set present_qos = [] %}
+{% set absent_qos = [] %}
+{% set configured_interfaces = [] %}
+
+{% for key, value in qos.items() %}
+  {% if value.state == "present" %}
+    {% set _ = present_qos.append(value) %}
+  {% elif value.state == "absent" %}
+    {% set _ = absent_qos.append(value) %}
+  {% endif %}
+{% endfor %}
+
+{% for item in absent_qos %}
+no class-map type qos match-any VLAN{{ item.vlan }}
+{% endfor %}
+
+{% for item in absent_qos %}
+policy-map type quality-of-service SENSE_QOS
+ no class VLAN{{ item.vlan }}
+exit
+{% endfor %}
+
+{% set configured_classes = [] %}
+{% for item in present_qos %}
+  {% if item.vlan not in configured_classes %}
+    {% set _ = configured_classes.append(item.vlan) %}
+class-map type qos match-any VLAN{{ item.vlan }}
+ match vlan {{ item.vlan }}
+exit
+  {% endif %}
+{% endfor %}
+
+{% set configured_policies = [] %}
+{% for item in present_qos %}
+  {% if item.vlan not in configured_policies %}
+    {% set _ = configured_policies.append(item.vlan) %}
+policy-map type quality-of-service SENSE_QOS
+ class VLAN{{ item.vlan }}
+  set traffic-class {{ item.qosnumber }}
+    {% if item.qosname == "guaranteedCapped" %}
+  police rate {{ item.min_rate}} mbps burst-size {{ item.burst_size }} mbytes
+    {% else %}
+  police rate {{ item.min_rate }} mbps burst-size {{ item.burst_size }} mbytes action set drop-precedence rate {{ item.max_rate }} mbps burst-size {{ item.burst_size }} mbytes
+    {% endif %}
+ exit
+exit
+  {% endif %}
+{% endfor %}
+
+{% for item in present_qos %}
+  {% if item.port not in configured_interfaces %}
+    {% set _ = configured_interfaces.append(item.port) %}
+interface {{ item.port }}
+ service-policy type qos input SENSE_QOS
+  {% endif %}
+{% endfor %}
+
+{% endif %}
