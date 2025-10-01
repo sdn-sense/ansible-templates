@@ -36,6 +36,9 @@ interface Vlan {{ vlan_vars.vlanid }}
  no description
         {% endif %}
       {% endif %}
+      {% if vlan_vars.vrf is defined %}
+ vrf {{ vlan_vars.vrf }}
+      {% endif %}
       {% if vlan_vars.ipv4_address is defined %}
         {% set ip_vars = vlan_vars.ipv4_address %}
         {% for key, value in ip_vars.items() %}
