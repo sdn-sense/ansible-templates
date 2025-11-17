@@ -141,6 +141,11 @@ exit
 policy-map type quality-of-service SENSE_QOS
  class VLAN{{ item.vlan }}
   set traffic-class {{ item.qosnumber }}
+    {% if item.qosname == "guaranteedCapped" %}
+  police rate {{ item.min_rate}} mbps burst-size {{ item.burst_size }} mbytes
+    {% else %}
+  police rate {{ item.min_rate }} mbps burst-size {{ item.burst_size }} mbytes action set drop-precedence rate {{ item.max_rate }} mbps burst-size {{ item.burst_size }} mbytes
+    {% endif %}
  exit
 exit
   {% endif %}
