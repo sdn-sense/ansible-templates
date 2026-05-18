@@ -6,6 +6,17 @@ ansible_network_os: sense.junos.junos
 ansible_ssh_pass: MySuperDuperPassword
 ansible_ssh_user: MySuperDuperUsername
 hostname: junos_s0
+# Per-device template/facts parameters, sourced from rm-configs `ansible_params:`.
+# - vlanip: 'vlan' or 'irb' (standard mode only — selects L3 interface type)
+# - vlanmode: 'standard' (default), 'mx', or 'ptx'.
+#     'mx'  -> routing-instances <ri> bridge-domains VLAN-<id> ...
+#     'ptx' -> routing-instances <ri> vlans          VLAN-<id> ...
+# - routing_instance: name of the AutoGOLE virtual-switch routing-instance (default AutoGOLE-Vlans).
+#   Only consulted when vlanmode is mx or ptx.
+ansparams:
+  vlanip: 'vlan'
+  vlanmode: 'standard'
+  routing_instance: 'AutoGOLE-Vlans'
 # For snmp monitoring parameters, see Session API parameters: https://easysnmp.readthedocs.io/en/latest/session_api.html
 snmp_monitoring:
   hostname: 1.2.3.4

@@ -49,5 +49,7 @@
   - name: Gather Juniper Junos Facts
     sense.junos.junos_facts:
       gather_subset: all
+      vlanmode: "{{ ansparams.vlanmode | default('standard') }}"
+      routing_instance: "{{ ansparams.routing_instance | default('AutoGOLE-Vlans') }}"
     register: facts
     when: ansible_network_os is defined and ansible_network_os == "sense.junos.junos"

@@ -8,7 +8,9 @@ ansible_ssh_pass: SuperDuperPassword
 ansible_ssh_user: SuperDuperUsername
 hostname: junos_s0
 ansparams:
-  vlanip: 'vlan' # or irb
+  vlanip: 'vlan'              # or irb - used in standard mode for L3 interface type
+  vlanmode: 'standard'        # or 'mx' / 'ptx' - selects routing-instance virtual-switch on MX/PTX
+  routing_instance: 'AutoGOLE-Vlans'  # only used when vlanmode is mx or ptx
 interface:
   Vlan 3607:
     description: urn:ogf:network:service+858b5c37-5af7-4e8a-9dc7-747abb7e0928:vt+l2-policy::Connection_1
@@ -18,6 +20,14 @@ interface:
     state: present
     tagged_members: {et-0/0/11: present}
     vrf: lhcone
+# For MX/PTX virtual-switch mode (vlanmode: mx or ptx), the dict key and name use
+# VLAN-<id> format (uppercase, hyphen) instead of Vlan<id>, e.g.:
+#   VLAN-1323:
+#     name: VLAN-1323
+#     vlanid: 1323
+#     description: "SC25 NENG-1985 VLAN 1323"
+#     state: present
+#     tagged_members: {ae14: present, ae4: present}
 sense_bgp:
   asn: '64513'
   ipv6_network: {'2605:d9c0:2:fff1::/64': present}
@@ -52,8 +62,46 @@ sense_bgp:
 {% else %}
   {% set vlancmd = 'vlan' %}
 {% endif %}
+{% set vlanmode = (ansparams.vlanmode if ansparams is defined and ansparams.vlanmode is defined else 'standard') %}
+{% set ri_name  = (ansparams.routing_instance if ansparams is defined and ansparams.routing_instance is defined else 'AutoGOLE-Vlans') %}
 
-{% if interface is defined and interface %}
+{% if interface is defined and interface and vlanmode in ('mx', 'ptx') %}
+{# ----- MX / PTX virtual-switch mode -----
+   MX:  routing-instances <ri> bridge-domains VLAN-<id> ...
+   PTX: routing-instances <ri> vlans          VLAN-<id> ...
+   Sub-units per VLAN use `encapsulation vlan-bridge` + `vlan-id <id>`.
+   The instance-type line is idempotent in Junos, so we emit it once per push.
+#}
+{% set ri_kw = 'bridge-domains' if vlanmode == 'mx' else 'vlans' %}
+set routing-instances {{ ri_name }} instance-type virtual-switch
+{% for key, value in interface.items() %}
+  {% set bdname = 'VLAN-' ~ value.vlanid %}
+  {% if value.state is defined and value.state == 'present' %}
+set routing-instances {{ ri_name }} {{ ri_kw }} {{ bdname }} description "{{ value.description }}"
+set routing-instances {{ ri_name }} {{ ri_kw }} {{ bdname }} vlan-id {{ value.vlanid }}
+    {% if value.tagged_members is defined and value.tagged_members %}
+      {% for member, state in value.tagged_members.items() %}
+        {% if state == 'present' %}
+set routing-instances {{ ri_name }} {{ ri_kw }} {{ bdname }} interface {{ member }}.{{ value.vlanid }}
+set interfaces {{ member }} unit {{ value.vlanid }} encapsulation vlan-bridge
+set interfaces {{ member }} unit {{ value.vlanid }} vlan-id {{ value.vlanid }}
+        {% elif state == 'absent' %}
+delete routing-instances {{ ri_name }} {{ ri_kw }} {{ bdname }} interface {{ member }}.{{ value.vlanid }}
+delete interfaces {{ member }} unit {{ value.vlanid }}
+        {% endif %}
+      {% endfor %}
+    {% endif %}
+  {% elif value.state is defined and value.state == 'absent' %}
+    {% if value.tagged_members is defined and value.tagged_members %}
+      {% for member, state in value.tagged_members.items() %}
+delete interfaces {{ member }} unit {{ value.vlanid }}
+      {% endfor %}
+    {% endif %}
+delete routing-instances {{ ri_name }} {{ ri_kw }} {{ bdname }}
+  {% endif %}
+{% endfor %}
+{% elif interface is defined and interface %}
+{# ----- Standard Junos VLAN mode (EX/QFX/SRX/ELS, or MX in non-virtual-switch use) ----- #}
 {% for key, value in interface.items() %}
   {% if value.state is defined and value.state == 'present' %}
 set vlans {{ value.name }} vlan-id {{ value.vlanid }}
@@ -197,3 +245,103 @@ delete policy-options policy-statement {{ map_name }}
    {% endif %}
   {% endif %}
 {% endif %}
+
+
+{# Configure quality of Service #}
+
+
+{##########################################
+#Purpose:
+#Configure QoS commands for arista eos Devices
+# Examples below of configuration passed by the RM to create QoS policies
+qos:
+  Ethernet12-1-3616:
+    burst_size: 256
+    max_rate: 50000
+    min_rate: 50000
+    port: Ethernet12/1
+    qosname: guaranteedCapped
+    qosnumber: 7
+    state: present
+    unit: mbit
+    vlan: 3616
+  Port-Channel502-3616:
+    burst_size: 256
+    max_rate: 50000
+    min_rate: 50000
+    port: Port-Channel502
+    qosname: guaranteedCapped
+    qosnumber: 7
+    state: present
+    unit: mbit
+    vlan: 3616
+
+Juniper to activate it
+set firewall policer SENSE-3919 if-exceeding bandwidth-limit 5g
+set firewall policer SENSE-3919 if-exceeding burst-size-limit 10m
+set firewall policer SENSE-3919 then discard
+
+set firewall family ethernet-switching filter SENSEL-3919 interface-specific
+set firewall family ethernet-switching filter SENSEL-3919 term 1 then policer SENSE-3919
+set firewall family ethernet-switching filter SENSEL-3919 term 2 then accept
+
+set interfaces ae2 unit 0 family ethernet-switching filter input SENSEL-3919
+set interfaces ae2 unit 0 family ethernet-switching filter output SENSEL-3919
+# To remove the configuration from
+=====================
+delete interfaces ae2 unit 0 family ethernet-switching filter input SENSEL-3919
+delete interfaces ae2 unit 0 family ethernet-switching filter output SENSEL-3919
+delete firewall family ethernet-switching filter SENSEL-3919
+delete firewall policer SENSE-3919
+
+
+#########################################}
+{# QoS uses `family ethernet-switching` filters and is only valid in standard mode.
+   For MX/PTX virtual-switch mode, the filter family differs and QoS is not yet
+   supported (per design decision); skip the block entirely in that case. #}
+{% if qos is defined and qos and vlanmode == 'standard' %}
+{% set present_qos = [] %}
+{% set absent_qos = [] %}
+
+{% for key, value in qos.items() %}
+  {# This only works for guaranteedCapped for now, until we identify traffic classes #}
+  {% if value.state == "present" and value.qosname == "guaranteedCapped" %}
+    {% set _ = present_qos.append(value) %}
+  {% elif value.state == "absent" and value.qosname == "guaranteedCapped" %}
+    {% set _ = absent_qos.append(value) %}
+  {% endif %}
+{% endfor %}
+
+{% for item in absent_qos %}
+delete interfaces {{ item.port }} unit 0 family ethernet-switching filter input SENSEL-{{ item.vlan }}
+delete interfaces {{ item.port }} unit 0 family ethernet-switching filter output SENSEL-{{ item.vlan }}
+delete firewall family ethernet-switching filter SENSEL-{{ item.vlan }}
+delete firewall policer SENSE-{{ item.vlan }}
+{% endfor %}
+
+{% set configured_policer = [] %}
+{% for item in present_qos %}
+  {% if item.vlan not in configured_policer %}
+    {% set _ = configured_policer.append(item.vlan) %}
+set firewall policer SENSE-{{ item.vlan }} if-exceeding bandwidth-limit {{ item.max_rate }}m
+set firewall policer SENSE-{{ item.vlan }} if-exceeding burst-size-limit {{ item.burst_size }}m
+set firewall policer SENSE-{{ item.vlan }} then discard
+  {% endif %}
+{% endfor %}
+
+{% set configured_filter = [] %}
+{% for item in present_qos %}
+  {% if item.vlan not in configured_filter %}
+    {% set _ = configured_filter.append(item.vlan) %}
+policy-map type quality-of-service SENSE_QOS
+ class VLAN{{ item.vlan }}
+  set traffic-class {{ item.qosnumber }}
+    {% if item.qosname == "guaranteedCapped" %}
+  police rate {{ item.min_rate}} mbps burst-size {{ item.burst_size }} mbytes
+    {% else %}
+  police rate {{ item.min_rate }} mbps burst-size {{ item.burst_size }} mbytes action set drop-precedence rate {{ item.max_rate }} mbps burst-size {{ item.burst_size }} mbytes
+    {% endif %}
+ exit
+exit
+  {% endif %}
+{% endfor %}
