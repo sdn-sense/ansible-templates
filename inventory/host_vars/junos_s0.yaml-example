@@ -11,12 +11,12 @@ hostname: junos_s0
 # - vlanmode: 'standard' (default), 'mx', or 'ptx'.
 #     'mx'  -> routing-instances <ri> bridge-domains VLAN-<id> ...
 #     'ptx' -> routing-instances <ri> vlans          VLAN-<id> ...
-# - routing_instance: name of the AutoGOLE virtual-switch routing-instance (default AutoGOLE-Vlans).
-#   Only consulted when vlanmode is mx or ptx.
+# - routing_instance: name of the virtual-switch routing-instance. Optional; defaults to
+#   SENSE-Vlans when omitted. Only consulted when vlanmode is mx or ptx.
 ansparams:
   vlanip: 'vlan'
   vlanmode: 'standard'
-  routing_instance: 'AutoGOLE-Vlans'
+  # routing_instance: 'SENSE-Vlans'   # optional - uncomment to override the default (mx/ptx only)
 # For snmp monitoring parameters, see Session API parameters: https://easysnmp.readthedocs.io/en/latest/session_api.html
 snmp_monitoring:
   hostname: 1.2.3.4

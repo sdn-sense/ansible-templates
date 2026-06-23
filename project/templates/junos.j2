@@ -10,7 +10,7 @@ hostname: junos_s0
 ansparams:
   vlanip: 'vlan'              # or irb - used in standard mode for L3 interface type
   vlanmode: 'standard'        # or 'mx' / 'ptx' - selects routing-instance virtual-switch on MX/PTX
-  routing_instance: 'AutoGOLE-Vlans'  # only used when vlanmode is mx or ptx
+  routing_instance: 'SENSE-Vlans'     # optional; only used when vlanmode is mx or ptx (default: SENSE-Vlans)
 interface:
   Vlan 3607:
     description: urn:ogf:network:service+858b5c37-5af7-4e8a-9dc7-747abb7e0928:vt+l2-policy::Connection_1
@@ -63,7 +63,7 @@ sense_bgp:
   {% set vlancmd = 'vlan' %}
 {% endif %}
 {% set vlanmode = (ansparams.vlanmode if ansparams is defined and ansparams.vlanmode is defined else 'standard') %}
-{% set ri_name  = (ansparams.routing_instance if ansparams is defined and ansparams.routing_instance is defined else 'AutoGOLE-Vlans') %}
+{% set ri_name  = (ansparams.routing_instance if ansparams is defined and ansparams.routing_instance is defined else 'SENSE-Vlans') %}
 
 {% if interface is defined and interface and vlanmode in ('mx', 'ptx') %}
 {# ----- MX / PTX virtual-switch mode -----
