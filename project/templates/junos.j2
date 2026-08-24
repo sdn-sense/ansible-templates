@@ -11,6 +11,7 @@ ansparams:
   vlanip: 'vlan'              # or irb - used in standard mode for L3 interface type
   vlanmode: 'standard'        # or 'mx' / 'ptx' - selects routing-instance virtual-switch on MX/PTX
   routing_instance: 'SENSE-Vlans'     # optional; only used when vlanmode is mx or ptx (default: SENSE-Vlans)
+  stp_enabled: false          # optional; mx/ptx only - emits per-VLAN vstp interface commands (default: false)
 interface:
   Vlan 3607:
     description: urn:ogf:network:service+858b5c37-5af7-4e8a-9dc7-747abb7e0928:vt+l2-policy::Connection_1
@@ -64,6 +65,7 @@ sense_bgp:
 {% endif %}
 {% set vlanmode = (ansparams.vlanmode if ansparams is defined and ansparams.vlanmode is defined else 'standard') %}
 {% set ri_name  = (ansparams.routing_instance if ansparams is defined and ansparams.routing_instance is defined else 'SENSE-Vlans') %}
+{% set stp_enabled = (ansparams.stp_enabled if ansparams is defined and ansparams.stp_enabled is defined else false) %}
 
 {% if interface is defined and interface and vlanmode in ('mx', 'ptx') %}
 {# ----- MX / PTX virtual-switch mode -----
@@ -85,9 +87,15 @@ set routing-instances {{ ri_name }} {{ ri_kw }} {{ bdname }} vlan-id {{ value.vl
 set routing-instances {{ ri_name }} {{ ri_kw }} {{ bdname }} interface {{ member }}.{{ value.vlanid }}
 set interfaces {{ member }} unit {{ value.vlanid }} encapsulation vlan-bridge
 set interfaces {{ member }} unit {{ value.vlanid }} vlan-id {{ value.vlanid }}
+          {% if stp_enabled %}
+set routing-instances {{ ri_name }} protocols vstp vlan {{ value.vlanid }} interface {{ member }}
+          {% endif %}
         {% elif state == 'absent' %}
 delete routing-instances {{ ri_name }} {{ ri_kw }} {{ bdname }} interface {{ member }}.{{ value.vlanid }}
 delete interfaces {{ member }} unit {{ value.vlanid }}
+          {% if stp_enabled %}
+delete routing-instances {{ ri_name }} protocols vstp vlan {{ value.vlanid }} interface {{ member }}
+          {% endif %}
         {% endif %}
       {% endfor %}
     {% endif %}
@@ -95,9 +103,15 @@ delete interfaces {{ member }} unit {{ value.vlanid }}
     {% if value.tagged_members is defined and value.tagged_members %}
       {% for member, state in value.tagged_members.items() %}
 delete interfaces {{ member }} unit {{ value.vlanid }}
+        {% if stp_enabled %}
+delete routing-instances {{ ri_name }} protocols vstp vlan {{ value.vlanid }} interface {{ member }}
+        {% endif %}
       {% endfor %}
     {% endif %}
 delete routing-instances {{ ri_name }} {{ ri_kw }} {{ bdname }}
+    {% if stp_enabled %}
+delete routing-instances {{ ri_name }} protocols vstp vlan {{ value.vlanid }}
+    {% endif %}
   {% endif %}
 {% endfor %}
 {% elif interface is defined and interface %}
