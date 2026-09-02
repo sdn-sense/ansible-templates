@@ -12,6 +12,11 @@ ansparams:
   vlanmode: 'standard'        # or 'mx' / 'ptx' - selects routing-instance virtual-switch on MX/PTX
   routing_instance: 'SENSE-Vlans'     # optional; only used when vlanmode is mx or ptx (default: SENSE-Vlans)
   stp_enabled: false          # optional; mx/ptx only - emits per-VLAN vstp interface commands (default: false)
+  # subset_config: optional; per-subset on/off for junos_facts (getfacts.yaml).
+  # Any of 'default' / 'interfaces' / 'routing'; omitted subsets stay enabled.
+  # Set 'routing: false' on routers where `show route all | display xml` is slow
+  # enough to time out and disrupt the CLI session for the other subsets.
+  #   subset_config: {routing: false}
 interface:
   Vlan 3607:
     description: urn:ogf:network:service+858b5c37-5af7-4e8a-9dc7-747abb7e0928:vt+l2-policy::Connection_1

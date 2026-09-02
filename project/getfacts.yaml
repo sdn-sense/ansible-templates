@@ -51,5 +51,6 @@
       gather_subset: all
       vlanmode: "{{ ansparams.vlanmode | default('standard') }}"
       routing_instance: "{{ ansparams.routing_instance | default('SENSE-Vlans') }}"
+      subset_config: "{{ ansparams.subset_config | default({}) }}"
     register: facts
     when: ansible_network_os is defined and ansible_network_os == "sense.junos.junos"

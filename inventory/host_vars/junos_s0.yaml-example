@@ -13,10 +13,15 @@ hostname: junos_s0
 #     'ptx' -> routing-instances <ri> vlans          VLAN-<id> ...
 # - routing_instance: name of the virtual-switch routing-instance. Optional; defaults to
 #   SENSE-Vlans when omitted. Only consulted when vlanmode is mx or ptx.
+# - subset_config: optional per-subset on/off for getfacts.yaml (junos_facts).
+#   Keys: 'default' / 'interfaces' / 'routing'; omitted subsets stay enabled.
+#   Set {routing: false} on routers where `show route all | display xml` is slow
+#   enough to hit the persistent-CLI timeout and disrupt the other subsets.
 ansparams:
   vlanip: 'vlan'
   vlanmode: 'standard'
   # routing_instance: 'SENSE-Vlans'   # optional - uncomment to override the default (mx/ptx only)
+  # subset_config: {routing: false}   # optional - skip the routing facts subset on this host
 # For snmp monitoring parameters, see Session API parameters: https://easysnmp.readthedocs.io/en/latest/session_api.html
 snmp_monitoring:
   hostname: 1.2.3.4
