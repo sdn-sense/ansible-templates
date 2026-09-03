@@ -6,7 +6,9 @@ ansible_network_os: sense.junos.junos
 ansible_ssh_pass: MySuperDuperPassword
 ansible_ssh_user: MySuperDuperUsername
 hostname: junos_s0
-# Per-device template/facts parameters, sourced from rm-configs `ansible_params:`.
+# Per-device template/facts parameters, sourced from the site /etc/ansible-conf.yaml
+# `ansparams:` block (written into host_vars by ansible-prepare.py). Not read from
+# the SiteRM git (rm-configs) switch config.
 # - vlanip: 'vlan' or 'irb' (standard mode only — selects L3 interface type)
 # - vlanmode: 'standard' (default), 'mx', or 'ptx'.
 #     'mx'  -> routing-instances <ri> bridge-domains VLAN-<id> ...
