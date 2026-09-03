@@ -7,18 +7,21 @@
   - name: Gather Dell OS 9 Facts
     sense.dellos9.dellos9_facts:
       gather_subset: all
+      subset_config: "{{ ansparams.subset_config | default({}) }}"
     register: facts
     when: ansible_network_os is defined and ansible_network_os == "sense.dellos9.dellos9"
 
   - name: Gather Dell OS 10 Facts
     sense.dellos10.dellos10_facts:
       gather_subset: all
+      subset_config: "{{ ansparams.subset_config | default({}) }}"
     register: facts
     when: ansible_network_os is defined and ansible_network_os == "sense.dellos10.dellos10"
 
   - name: Gather Arista EOS Facts
     sense.aristaeos.aristaeos_facts:
       gather_subset: all
+      subset_config: "{{ ansparams.subset_config | default({}) }}"
     register: facts
     when: ansible_network_os is defined and ansible_network_os == "sense.aristaeos.aristaeos"
 
@@ -37,6 +40,7 @@
   - name: Gather all Cisco NX facts
     sense.cisconx9.cisconx9_facts:
       gather_subset: all
+      subset_config: "{{ ansparams.subset_config | default({}) }}"
     register: facts
     when: ansible_network_os is defined and ansible_network_os == "sense.cisconx9.cisconx9"
 
