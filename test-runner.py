@@ -11,6 +11,9 @@ Modes:
   test-runner.py delete-vlan --host H --vlan V
                   --members M [--members M2 ...]
                   [--dry-run]                       Remove a VLAN (+ optional tagged members) from one device
+  test-runner.py bgp-summary [--host H] [--vrf V]
+                  [--type ipv4|ipv6|both] [--no-detail]
+                  [--dry-run]                       Run a BGP summary check, optionally scoped to one host
 
 For create-vlan/delete-vlan, the script prepares `inventory_singleapply/`
 (inventory.yaml + host_vars/<host>.yaml) from the host's current main
@@ -18,6 +21,14 @@ host_vars, with `interface` overridden to just the requested VLAN change,
 then runs `applyconfig.yaml` against it -- unless --dry-run is given, in
 which case only the Jinja2 template is rendered locally (no device contact,
 no config pushed) and printed.
+
+bgp-summary uses the same `inventory_singleapply/` mechanism (one or all
+hosts, per --host), injecting a `bgp_summary: {vrf, type, detail}` host var
+before running `bgpsummary.yaml`. --dry-run renders the FRR/SONiC input
+template locally (those two vendors execute via an on-device script); for
+the other vendors (real Ansible modules that build their own show command),
+--dry-run just prints the module and parameters that would run, since the
+actual command is constructed inside the module, not from a template here.
 
 Authors:
   Justas Balcas jbalcas (at) caltech.edu
@@ -137,6 +148,30 @@ def prepareSingleApply(host, hostvars):
     writeYaml(os.path.join(SINGLEAPPLY_HOSTVARS_DIR, f"{host}.yaml"), hostvars)
 
 
+def prepareBgpSummaryApply(hosts, bgpSummaryVars):
+    """Write inventory_singleapply/{inventory.yaml,host_vars/<host>.yaml} for
+    one or more hosts, injecting `bgp_summary` into each host's vars.
+
+    Same mechanism as prepareSingleApply, generalized to a list of hosts
+    since bgp-summary (a read-only check) is safe to run fleet-wide, unlike
+    create-vlan/delete-vlan which are always scoped to exactly one device.
+    """
+    mainInventory = getMainInventory()
+    missing = [h for h in hosts if h not in mainInventory]
+    if missing:
+        raise SystemExit(f"ERROR: host(s) not found in {MAIN_INVENTORY}: {', '.join(missing)}")
+    # Clear any stale per-host files from a previous run so nothing leaks in.
+    if os.path.isdir(SINGLEAPPLY_HOSTVARS_DIR):
+        for fname in os.listdir(SINGLEAPPLY_HOSTVARS_DIR):
+            if fname.endswith(".yaml") and fname != "README.MD":
+                os.remove(os.path.join(SINGLEAPPLY_HOSTVARS_DIR, fname))
+    writeYaml(SINGLEAPPLY_INVENTORY, {"sense": {"hosts": {h: mainInventory[h] for h in hosts}}})
+    for h in hosts:
+        hostvars = dict(getHostVars(h))
+        hostvars["bgp_summary"] = bgpSummaryVars
+        writeYaml(os.path.join(SINGLEAPPLY_HOSTVARS_DIR, f"{h}.yaml"), hostvars)
+
+
 def renderDryRun(hostvars, templateKey):
     """Render the host's Jinja2 template locally with hostvars, no device contact"""
     templateName = hostvars.get(templateKey, "")
@@ -197,7 +232,9 @@ def runAnsible(playbook, inventory, host=None, saveFacts=False, verbosity=DEFAUL
             action = host_events["event_data"]["task_action"]
             print(action)
             res = host_events["event_data"]["res"]
-            if "stdout_lines" in res:
+            if "bgp_summary" in res:
+                pprint.pprint(res["bgp_summary"])
+            elif "stdout_lines" in res:
                 for line in res["stdout_lines"]:
                     print(line)
             elif "ansible_facts" in res and "ansible_net_interfaces" in res["ansible_facts"]:
@@ -254,6 +291,38 @@ def doVlan(action, host, vlanid, members, description, dryRun, verbosity):
     runAnsible("applyconfig.yaml", SINGLEAPPLY_INVENTORY, host=host, verbosity=verbosity)
 
 
+def doBgpSummary(host, vrf, iptype, detail, dryRun, verbosity):
+    """bgp-summary: run bgpsummary.yaml, optionally scoped to one host.
+
+    No --host means every device in the main inventory -- safe for this
+    mode since it's a read-only 'show' check, unlike create-vlan/delete-vlan.
+    """
+    hosts = [host] if host else list(getMainInventory().keys())
+    bgpSummaryVars = {"vrf": vrf or "", "type": iptype, "detail": detail}
+
+    print(f"bgp-summary: hosts={hosts} vrf={bgpSummaryVars['vrf'] or '(default)'} "
+          f"type={iptype} detail={detail}")
+
+    if dryRun:
+        print("[DRY-RUN] Would run bgpsummary.yaml (NOT contacting devices):")
+        for h in hosts:
+            hostvars = dict(getHostVars(h))
+            networkOs = hostvars.get("ansible_network_os")
+            print(f"--- {h} (network_os={networkOs}) ---")
+            if networkOs in ("sense.frr.frr", "sense.sonic.sonic"):
+                hostvars["bgp_summary"] = bgpSummaryVars
+                print(renderDryRun(hostvars, "template_name_bgpsummary"))
+            elif networkOs:
+                print(f"Would call {networkOs}_bgpsummary with "
+                      f"vrf={bgpSummaryVars['vrf']!r} type={iptype!r} detail={detail}")
+            else:
+                print("[no ansible_network_os defined for this host, nothing to run]")
+        return
+
+    prepareBgpSummaryApply(hosts, bgpSummaryVars)
+    runAnsible("bgpsummary.yaml", SINGLEAPPLY_INVENTORY, host=host, verbosity=verbosity)
+
+
 def verbosityType(value):
     """argparse type= for --verbosity: int, clamped to [0, MAX_VERBOSITY]"""
     try:
@@ -303,6 +372,18 @@ def parseArgs():
                           help="Render the config only; do not push to the device")
     addVerbosityArg(deleteP)
 
+    bgpP = sub.add_parser("bgp-summary", help="Run a BGP summary check against device(s)")
+    bgpP.add_argument("--host", default=None, help="Limit to a single host (default: all hosts)")
+    bgpP.add_argument("--vrf", default="", help="VRF to check (default: device's default VRF)")
+    bgpP.add_argument("--type", default="both", choices=["ipv4", "ipv6", "both"], dest="iptype",
+                       help="Address family to check (default: both)")
+    bgpP.add_argument("--no-detail", action="store_false", dest="detail", default=True,
+                       help="Skip the extra per-peer advertised-count call on Junos/Cisco NX9 "
+                            "(default: fetch it)")
+    bgpP.add_argument("--dry-run", action="store_true", dest="dry_run",
+                       help="Do not contact devices; just show what would run")
+    addVerbosityArg(bgpP)
+
     args = parser.parse_args()
     if args.action is None:
         # Default: get configuration of all devices.
@@ -320,6 +401,8 @@ def main():
     elif args.action in ("create-vlan", "delete-vlan"):
         doVlan(args.action, args.host, args.vlanid, args.members,
                getattr(args, "description", ""), args.dry_run, args.verbosity)
+    elif args.action == "bgp-summary":
+        doBgpSummary(args.host, args.vrf, args.iptype, args.detail, args.dry_run, args.verbosity)
     else:
         print(f"Unknown action: {args.action}")
         sys.exit(1)
