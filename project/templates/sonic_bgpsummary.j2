@@ -1,0 +1,11 @@
+#jinja2: lstrip_blocks: "True", trim_blocks: "True"
+{##########################################
+#Purpose:
+#Configure BGP Summary Command to be executed on the device
+#bgp_summary:
+#  vrf: lhcone        (optional; omitted means default VRF)
+#  type: ipv6         (ipv4 | ipv6 | both)
+#########################################}
+{% if bgp_summary is defined and bgp_summary %}
+BGPSUMMARY: {{ bgp_summary }}
+{% endif %}

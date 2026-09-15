@@ -1,6 +1,7 @@
 template_name: frr.j2
 template_name_ping: frr_ping.j2
 template_name_traceroute: frr_traceroute.j2
+template_name_bgpsummary: frr_bgpsummary.j2
 ansible_become: false
 ansible_connection: ansible.netcommon.libssh
 ansible_network_os: sense.frr.frr
