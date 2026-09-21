@@ -1,0 +1,80 @@
+---
+# Execute BGP Summary and return a normalized peer list under the
+# registered `bgpsummary_result.bgp_summary` key, regardless of vendor.
+#
+# Input host var `bgp_summary` (set by SiteRM, same convention as the
+# `traceroute`/`ping` host vars used by traceroute.yaml/ping.yaml):
+#   bgp_summary:
+#     vrf: lhcone          # optional; omitted/empty means default VRF
+#     type: ipv6            # ipv4 | ipv6 | both (default: both)
+#     detail: true           # ipv4/ipv6 -- Junos/NX9 only, default true;
+#                             # whether to pay for the extra per-peer call
+#                             # needed to get advertised-prefix counts on
+#                             # those two platforms (see docs/plans in siterm)
+#
+- name: Execute BGP Summary
+  hosts: all
+  connection: network_cli
+  gather_facts: no
+  tasks:
+    - name: Build Config Templates for BGP Summary (FRR/SONiC)
+      template:
+        src: "{{ template_name_bgpsummary }}"
+        dest: /tmp/bgpsummary_{{ inventory_hostname }}.conf
+      when: ansible_network_os is defined and ansible_network_os in ["sense.frr.frr", "sense.sonic.sonic"]
+
+    - name: Push FRR BGP Summary Request
+      sense.frr.frr_command:
+        frr_debug: False
+        frr_bgpsummary: /tmp/bgpsummary_{{ inventory_hostname }}.conf
+      when: ansible_network_os is defined and ansible_network_os == "sense.frr.frr"
+      register: bgpsummary_result
+
+    - name: Push Azure Sonic BGP Summary Request
+      sense.sonic.sonic_command:
+        sonic_debug: False
+        sonic_bgpsummary: /tmp/bgpsummary_{{ inventory_hostname }}.conf
+      when: ansible_network_os is defined and ansible_network_os == "sense.sonic.sonic"
+      register: bgpsummary_result
+
+    - name: Get Dell OS 9 BGP Summary
+      sense.dellos9.dellos9_bgpsummary:
+        vrf: "{{ bgp_summary.vrf | default('') }}"
+        type: "{{ bgp_summary.type | default('both') }}"
+        provider:
+          host: "{{ ansible_host }}"
+          timeout: 300
+      when: ansible_network_os is defined and ansible_network_os == "sense.dellos9.dellos9"
+      register: bgpsummary_result
+
+    - name: Get Dell OS 10 BGP Summary
+      sense.dellos10.dellos10_bgpsummary:
+        vrf: "{{ bgp_summary.vrf | default('') }}"
+        type: "{{ bgp_summary.type | default('both') }}"
+        provider:
+          host: "{{ ansible_host }}"
+          timeout: 300
+      when: ansible_network_os is defined and ansible_network_os == "sense.dellos10.dellos10"
+      register: bgpsummary_result
+
+    - name: Get Cisco NX9 BGP Summary
+      sense.cisconx9.cisconx9_bgpsummary:
+        vrf: "{{ bgp_summary.vrf | default('') }}"
+        type: "{{ bgp_summary.type | default('both') }}"
+        detail: "{{ bgp_summary.detail | default(true) }}"
+        provider:
+          host: "{{ ansible_host }}"
+          timeout: 300
+      when: ansible_network_os is defined and ansible_network_os == "sense.cisconx9.cisconx9"
+      register: bgpsummary_result
+
+    - name: Get Juniper Junos BGP Summary
+      sense.junos.junos_bgpsummary:
+        vrf: "{{ bgp_summary.vrf | default('') }}"
+        type: "{{ bgp_summary.type | default('both') }}"
+        detail: "{{ bgp_summary.detail | default(true) }}"
+        provider:
+          host: "{{ ansible_host }}"
+          timeout: 300
+      when: ansible_network_os is defined and ansible_network_os == "sense.junos.junos"
+      register: bgpsummary_result
